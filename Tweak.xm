@@ -1,8 +1,9 @@
 #import <UIKit/UIKit.h>
 #import <Foundation/Foundation.h>
+#import <roothide.h>
 
-static NSString * const CC18LogDirectory = @"/var/mobile/Library/Logs/iPadOS18CC";
-static NSString * const CC18LogPath = @"/var/mobile/Library/Logs/iPadOS18CC/cc.log";
+static NSString *CC18LogDirectory(void) { return jbroot(@"/var/iPadOS18CC/logs"); }
+static NSString *CC18LogPath(void) { return [CC18LogDirectory() stringByAppendingPathComponent:@"cc.log"]; }
 
 static void CC18Log(NSString *format, ...) {
     @autoreleasepool {
@@ -18,7 +19,7 @@ static void CC18Log(NSString *format, ...) {
         NSLog(@"[iPadOS18CC] %@", message);
         NSError *error = nil;
         NSFileManager *fm = NSFileManager.defaultManager;
-        NSArray<NSString *> *paths = @[CC18LogPath, @"/tmp/iPadOS18CC.log"];
+        NSArray<NSString *> *paths = @[CC18LogPath(), jbroot(@"/var/iPadOS18CC/logs/fallback.log")];
         for (NSString *path in paths) {
             NSString *directory = [path stringByDeletingLastPathComponent];
             error = nil;
@@ -53,7 +54,7 @@ static void CC18UncaughtExceptionHandler(NSException *exception) {
 
 %ctor {
     @autoreleasepool {
-        CC18Log(@"Tweak loaded. process=%@ OS=%@ device=%@", NSProcessInfo.processInfo.processName, UIDevice.currentDevice.systemVersion, UIDevice.currentDevice.model);
+        CC18Log(@"*** TWEAK CONSTRUCTOR EXECUTED *** process=%@ OS=%@ device=%@", NSProcessInfo.processInfo.processName, UIDevice.currentDevice.systemVersion, UIDevice.currentDevice.model);
         NSSetUncaughtExceptionHandler(CC18UncaughtExceptionHandler);
     }
 }
