@@ -10,8 +10,11 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
-      - name: Install Theos
-        uses: Randomblock1/theos-action@v1
+      - name: Install RootHide Theos
+        run: |
+          export THEOS="$HOME/theos"
+          echo "THEOS=$THEOS" >> "$GITHUB_ENV"
+          bash -c "$(curl -fsSL https://raw.githubusercontent.com/roothide/theos/master/bin/install-theos)"
       - name: Build RootHide package
         run: make clean package FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=roothide
       - name: Upload Debian package
