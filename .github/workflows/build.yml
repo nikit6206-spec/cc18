@@ -1,0 +1,22 @@
+name: Build tweak package
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Theos
+        uses: Randomblock1/setup-theos@v1
+      - name: Build package
+        run: make package
+      - name: Upload Debian package
+        uses: actions/upload-artifact@v4
+        with:
+          name: iPadOS18CC-deb
+          path: packages/*.deb
+          if-no-files-found: warn
