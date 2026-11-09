@@ -18,19 +18,26 @@ static void CC18Log(NSString *format, ...) {
         NSLog(@"[iPadOS18CC] %@", message);
         NSError *error = nil;
         NSFileManager *fm = NSFileManager.defaultManager;
-        if (![fm fileExistsAtPath:CC18LogDirectory]) {
-            [fm createDirectoryAtPath:CC18LogDirectory withIntermediateDirectories:YES attributes:@{NSFilePosixPermissions:@0755} error:&error];
-            if (error) NSLog(@"[iPadOS18CC] log dir error: %@", error);
-        }
-        if (![fm fileExistsAtPath:CC18LogPath]) {
-            [line writeToFile:CC18LogPath atomically:YES encoding:NSUTF8StringEncoding error:&error];
-        } else {
-            NSFileHandle *handle = [NSFileHandle fileHandleForWritingAtPath:CC18LogPath];
-            if (handle) {
+        NSArray<NSString *> *paths = @[CC18LogPath, @"/tmp/iPadOS18CC.log"];
+        for (NSString *path in paths) {
+            NSString *directory = [path stringByDeletingLastPathComponent];
+            error = nil;
+            [fm createDirectoryAtPath:directory withIntermediateDirectories:YES attributes:nil error:&error];
+            if (error) { NSLog(@"[iPadOS18CC] create log directory %@ failed: %@", directory, error); continue; }
+            error = nil;
+            if (![fm fileExistsAtPath:path]) {
+                if (![line writeToFile:path atomically:YES encoding:NSUTF8StringEncoding error:&error]) {
+                    NSLog(@"[iPadOS18CC] initial log write %@ failed: %@", path, error);
+                    continue;
+                }
+            } else {
+                NSFileHandle *handle = [NSFileHandle fileHandleForWritingAtPath:path];
+                if (!handle) { NSLog(@"[iPadOS18CC] cannot open log file %@", path); continue; }
                 @try { [handle seekToEndOfFile]; [handle writeData:[line dataUsingEncoding:NSUTF8StringEncoding]]; }
                 @catch (NSException *exception) { NSLog(@"[iPadOS18CC] log write exception: %@", exception); }
                 @finally { [handle closeFile]; }
             }
+            break;
         }
     }
 }
@@ -46,7 +53,7 @@ static void CC18UncaughtExceptionHandler(NSException *exception) {
 
 %ctor {
     @autoreleasepool {
-        CC18Log(@"Tweak loaded. OS=%@ device=%@", UIDevice.currentDevice.systemVersion, UIDevice.currentDevice.model);
+        CC18Log(@"Tweak loaded. process=%@ OS=%@ device=%@", NSProcessInfo.processInfo.processName, UIDevice.currentDevice.systemVersion, UIDevice.currentDevice.model);
         NSSetUncaughtExceptionHandler(CC18UncaughtExceptionHandler);
     }
 }
