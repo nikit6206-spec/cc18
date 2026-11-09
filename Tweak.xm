@@ -47,9 +47,7 @@ static void CC18UncaughtExceptionHandler(NSException *exception) {
 %ctor {
     @autoreleasepool {
         CC18Log(@"Tweak loaded. OS=%@ device=%@", UIDevice.currentDevice.systemVersion, UIDevice.currentDevice.model);
-        NSSetUncaughtExceptionHandler(^(NSException *exception) {
-            CC18Log(@"UNCAUGHT EXCEPTION: %@\n%@", exception, exception.callStackSymbols);
-        });
+        NSSetUncaughtExceptionHandler(CC18UncaughtExceptionHandler);
     }
 }
 
