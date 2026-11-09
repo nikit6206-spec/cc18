@@ -1,53 +1,100 @@
 #import <UIKit/UIKit.h>
+#import <Foundation/Foundation.h>
 
-// Experimental hooks for iPadOS 15.x. Private classes are runtime-checked.
+static NSString * const CC18LogDirectory = @"/var/mobile/Library/Logs/iPadOS18CC";
+static NSString * const CC18LogPath = @"/var/mobile/Library/Logs/iPadOS18CC/cc.log";
+
+static void CC18Log(NSString *format, ...) {
+    @autoreleasepool {
+        va_list args;
+        va_start(args, format);
+        NSString *message = [[NSString alloc] initWithFormat:format arguments:args];
+        va_end(args);
+        NSString *stamp = [NSDateFormatter new].stringFromDate ?: @"";
+        NSDateFormatter *formatter = [NSDateFormatter new];
+        formatter.dateFormat = @"yyyy-MM-dd HH:mm:ss.SSS";
+        stamp = [formatter stringFromDate:[NSDate date]];
+        NSString *line = [NSString stringWithFormat:@"[%@] %@\n", stamp, message ?: @"(nil)"];
+        NSLog(@"[iPadOS18CC] %@", message);
+        NSError *error = nil;
+        NSFileManager *fm = NSFileManager.defaultManager;
+        if (![fm fileExistsAtPath:CC18LogDirectory]) {
+            [fm createDirectoryAtPath:CC18LogDirectory withIntermediateDirectories:YES attributes:@{NSFilePosixPermissions:@0755} error:&error];
+            if (error) NSLog(@"[iPadOS18CC] log dir error: %@", error);
+        }
+        if (![fm fileExistsAtPath:CC18LogPath]) {
+            [line writeToFile:CC18LogPath atomically:YES encoding:NSUTF8StringEncoding error:&error];
+        } else {
+            NSFileHandle *handle = [NSFileHandle fileHandleForWritingAtPath:CC18LogPath];
+            if (handle) {
+                @try { [handle seekToEndOfFile]; [handle writeData:[line dataUsingEncoding:NSUTF8StringEncoding]]; }
+                @catch (NSException *exception) { NSLog(@"[iPadOS18CC] log write exception: %@", exception); }
+                @finally { [handle closeFile]; }
+            }
+        }
+    }
+}
+
 @interface CCUIControlCenterViewController : UIViewController
 @end
 
 static UIView *sHomeIndicator;
 
-%hook CCUIControlCenterViewController
-
-- (void)viewDidAppear:(BOOL)animated {
-    %orig;
-
-    // Basic visual prototype: rounded translucent Control Center container.
-    UIView *root = self.view;
-    if (root) {
-        root.layer.cornerRadius = 24.0;
-        root.layer.masksToBounds = YES;
-        if (@available(iOS 13.0, *)) {
-            root.backgroundColor = [UIColor colorWithWhite:0.10 alpha:0.88];
-        }
+%ctor {
+    @autoreleasepool {
+        CC18Log(@"Tweak loaded. OS=%@ device=%@", UIDevice.currentDevice.systemVersion, UIDevice.currentDevice.model);
+        NSSetUncaughtExceptionHandler(^(NSException *exception) {
+            CC18Log(@"UNCAUGHT EXCEPTION: %@\n%@", exception, exception.callStackSymbols);
+        });
     }
 }
 
+%hook CCUIControlCenterViewController
+- (void)viewDidAppear:(BOOL)animated {
+    %orig;
+    @try {
+        UIView *root = self.view;
+        CC18Log(@"Control Center did appear: controller=%@ view=%@", NSStringFromClass(self.class), root);
+        if (root) {
+            root.layer.cornerRadius = 24.0;
+            root.layer.masksToBounds = YES;
+            if (@available(iOS 13.0, *)) root.backgroundColor = [UIColor colorWithWhite:0.10 alpha:0.88];
+        } else {
+            CC18Log(@"WARN: CC root view was nil");
+        }
+    } @catch (NSException *exception) {
+        CC18Log(@"CC styling exception: %@\n%@", exception, exception.callStackSymbols);
+    }
+}
 %end
 
 %hook SpringBoard
-
 - (void)applicationDidFinishLaunching:(id)application {
     %orig;
+    CC18Log(@"SpringBoard did finish launching");
     dispatch_async(dispatch_get_main_queue(), ^{
-        UIWindow *window = nil;
-        for (UIWindow *candidate in UIApplication.sharedApplication.windows) {
-            if (candidate.isKeyWindow) { window = candidate; break; }
-        }
-        if (!window || sHomeIndicator) return;
+        @try {
+            UIWindow *window = nil;
+            for (UIWindow *candidate in UIApplication.sharedApplication.windows) {
+                if (candidate.isKeyWindow) { window = candidate; break; }
+            }
+            if (!window) { CC18Log(@"WARN: key window not found; indicator not added"); return; }
+            if (sHomeIndicator) { CC18Log(@"Indicator already exists"); return; }
 
-        CGFloat width = 134.0;
-        CGFloat height = 5.0;
-        CGFloat bottomInset = window.safeAreaInsets.bottom;
-        CGRect frame = CGRectMake((CGRectGetWidth(window.bounds) - width) / 2.0,
-                                  CGRectGetHeight(window.bounds) - MAX(bottomInset, 8.0) - height - 4.0,
-                                  width, height);
-        sHomeIndicator = [[UIView alloc] initWithFrame:frame];
-        sHomeIndicator.backgroundColor = UIColor.whiteColor;
-        sHomeIndicator.layer.cornerRadius = height / 2.0;
-        sHomeIndicator.alpha = 0.85;
-        sHomeIndicator.userInteractionEnabled = NO;
-        [window addSubview:sHomeIndicator];
+            CGFloat width = 134.0, height = 5.0, bottomInset = window.safeAreaInsets.bottom;
+            CGRect frame = CGRectMake((CGRectGetWidth(window.bounds)-width)/2.0,
+                CGRectGetHeight(window.bounds)-MAX(bottomInset,8.0)-height-4.0,width,height);
+            sHomeIndicator = [[UIView alloc] initWithFrame:frame];
+            sHomeIndicator.backgroundColor = UIColor.whiteColor;
+            sHomeIndicator.layer.cornerRadius = height/2.0;
+            sHomeIndicator.alpha = 0.85;
+            sHomeIndicator.userInteractionEnabled = NO;
+            sHomeIndicator.accessibilityIdentifier = @"iPadOS18CC.HomeIndicator";
+            [window addSubview:sHomeIndicator];
+            CC18Log(@"Home indicator overlay added. frame=%@ safeInsets=%@", NSStringFromCGRect(frame), NSStringFromUIEdgeInsets(window.safeAreaInsets));
+        } @catch (NSException *exception) {
+            CC18Log(@"Indicator setup exception: %@\n%@", exception, exception.callStackSymbols);
+        }
     });
 }
-
 %end
