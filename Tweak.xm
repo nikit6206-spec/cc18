@@ -10,8 +10,8 @@ static void CC18Log(NSString *format, ...) {
         va_start(args, format);
         NSString *message = [[NSString alloc] initWithFormat:format arguments:args];
         va_end(args);
-        NSString *stamp = [NSDateFormatter new].stringFromDate ?: @"";
         NSDateFormatter *formatter = [NSDateFormatter new];
+        NSString *stamp = @"";
         formatter.dateFormat = @"yyyy-MM-dd HH:mm:ss.SSS";
         stamp = [formatter stringFromDate:[NSDate date]];
         NSString *line = [NSString stringWithFormat:@"[%@] %@\n", stamp, message ?: @"(nil)"];
@@ -39,6 +39,10 @@ static void CC18Log(NSString *format, ...) {
 @end
 
 static UIView *sHomeIndicator;
+
+static void CC18UncaughtExceptionHandler(NSException *exception) {
+    CC18Log(@"UNCAUGHT EXCEPTION: %@\\n%@", exception, exception.callStackSymbols);
+}
 
 %ctor {
     @autoreleasepool {
@@ -75,8 +79,14 @@ static UIView *sHomeIndicator;
     dispatch_async(dispatch_get_main_queue(), ^{
         @try {
             UIWindow *window = nil;
-            for (UIWindow *candidate in UIApplication.sharedApplication.windows) {
-                if (candidate.isKeyWindow) { window = candidate; break; }
+            if (@available(iOS 13.0, *)) {
+                for (UIWindowScene *scene in UIApplication.sharedApplication.connectedScenes) {
+                    if (scene.activationState != UISceneActivationStateForegroundActive) continue;
+                    for (UIWindow *candidate in scene.windows) {
+                        if (candidate.isKeyWindow) { window = candidate; break; }
+                    }
+                    if (window) break;
+                }
             }
             if (!window) { CC18Log(@"WARN: key window not found; indicator not added"); return; }
             if (sHomeIndicator) { CC18Log(@"Indicator already exists"); return; }
