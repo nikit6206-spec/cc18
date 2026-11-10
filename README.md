@@ -1,34 +1,12 @@
-# iPadOS18CC
+# CC18 iPad — iOS 18 visual upgrade
 
-Experimental jailbreak tweak project targeting iPad 9th generation (A13), iPadOS 15.6, and RootHide.
+The updated RootHide/arm64e source bundle is stored in `CC18iPad-iOS18-visual-upgrade.zip` (folder `CC18iPad/` inside the archive). It contains the complete project: Theos Makefile, Logos tweak source, SpringBoard filter plist, Debian control metadata and detailed README.
 
-## Scope
-
-This repository is a starting implementation for an iOS 18-inspired Control Center appearance and a Home Indicator-style bottom bar. It is **not yet a pixel-perfect port of iOS 18 Control Center**; that requires deeper integration with private Control Center frameworks and device testing.
+Target: iPad 9 (A13), iPadOS 15.x, Dopamine RootHide. Package version: 0.6.2.
 
 ## Build
+The GitHub Actions workflow builds the archive contents with RootHide Theos. The local wrapper also supports:
+`make clean package FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=roothide`
 
-Requires Theos and an iOS 15.6-compatible SDK/toolchain.
-
-```sh
-make package
-```
-
-The GitHub Actions workflow attempts a Theos package build. Verify the resulting package on a test device before installing. Keep a jailbreak recovery/respring method available.
-
-## Target
-
-- Device: iPad (9th generation)
-- OS: iPadOS 15.6
-- Jailbreak: RootHide
-- Package: Debian (`.deb`)
-
-## Features in this initial scaffold
-
-- Adds a configurable-looking Home Indicator overlay (currently fixed dimensions/position).
-- Applies an initial rounded, dark translucent treatment to Control Center's root view when the known controller class is present.
-- Hook points are intentionally conservative; APIs/classes are private and may differ on a given jailbreak.
-
-## Disclaimer
-
-Private-framework hooks can cause SpringBoard crashes or respring loops. This is experimental software, not an official Apple port.
+## Scope and limitations
+This is a visual/behavioral restyle of the iPadOS 15 Control Center, not a port of the newer iOS 18 Control Center framework. Existing iPadOS 15 controls remain underneath; the iOS 18 edit gallery, drag-and-resize grid and native pages are not implemented.

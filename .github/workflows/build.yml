@@ -1,4 +1,4 @@
-name: Build tweak package
+name: Build CC18 iPad package
 
 on:
   push:
@@ -15,11 +15,11 @@ jobs:
           export THEOS="$HOME/theos"
           echo "THEOS=$THEOS" >> "$GITHUB_ENV"
           bash -c "$(curl -fsSL https://raw.githubusercontent.com/roothide/theos/master/bin/install-theos)"
-      - name: Build RootHide package
+      - name: Extract source bundle and build RootHide package
         run: make clean package FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=roothide
       - name: Upload Debian package
         uses: actions/upload-artifact@v4
         with:
-          name: iPadOS18CC-deb
-          path: packages/*.deb
+          name: CC18iPad-deb
+          path: CC18iPad/packages/*.deb
           if-no-files-found: error

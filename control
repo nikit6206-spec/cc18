@@ -1,9 +1,0 @@
-Package: com.nikit6206.ipados18cc
-Name: iPadOS18CC
-Version: 0.1.1
-Architecture: iphoneos-arm
-Description: Experimental iOS 18-inspired Control Center styling and Home Indicator overlay for iPadOS 15.6.
-Maintainer: tweak-developer
-Author: tweak-developer
-Section: Tweaks
-Depends: mobilesubstrate

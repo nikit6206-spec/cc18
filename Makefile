@@ -1,13 +1,10 @@
-TARGET := iphone:clang:latest:15.0
-ARCHS := arm64
+THEOS ?= $(HOME)/theos
+SOURCE_ZIP := CC18iPad-iOS18-visual-upgrade.zip
 
-include $(THEOS)/makefiles/common.mk
+.PHONY: clean package
+clean:
+	rm -rf CC18iPad/packages CC18iPad/.theos CC18iPad/obj
 
-TWEAK_NAME := iPadOS18CC
-iPadOS18CC_FILES := Tweak.xm
-iPadOS18CC_CFLAGS := -fobjc-arc
-iPadOS18CC_FRAMEWORKS := UIKit
-
-include $(THEOS_MAKE_PATH)/tweak.mk
-
-# RootHide package build; package metadata is in control
+package:
+	unzip -oq $(SOURCE_ZIP) -d .
+	$(MAKE) -C CC18iPad package FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=roothide
